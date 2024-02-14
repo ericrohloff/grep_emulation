@@ -1,0 +1,164 @@
+-   Project 4: gerp
+-   CS 15 Fall 2023
+-   README
+-   Author: Abe Nelson (anelso18) Eric Rohloff (erohlo01)
+
+## Program Purpose:
+    The purpose of this program is to create a word finder similar to grep, that
+    can find case sensitive and insensitive words throughout a file directory.
+
+## Acknowledgments:
+    Shoutout to cplusplus.com for how to use the isalnum and tolower methods for
+    strings. 
+
+## Files:
+    main.cpp: Main file that handles the main command loop for our program.
+
+    Gerp.cpp: Implements the methods needed for main.cpp to function.
+
+    Gerp.h: Interface of the Gerp.cpp class.
+
+    Line.h: Interface and implementation for a Line which holds data about a
+            line in the file system.
+
+    Makefile: provides the tooling to compile the project. Also provides a
+             `make test` command for easier testing, described in detail in the 
+              testing section
+
+    StringMap.h: Interface of the StringMap.cpp class.
+     
+    StringMap.cpp: Implements a hashmap for of the file system that the program
+                   is called on.
+
+    stringProcessing.cpp: Implements stringProcessing class, which strips
+                          strings of alpha numeric characters. 
+
+    stringProcessing.h: Interface of the stringProcessing.cpp class.
+
+    DirNode.h, FSTree.h: Header files provided in the starter code for
+        interfacing with directories on the system's computers. Rely on
+        DirNode.o and FSTree.o respectively
+
+    README: This file.
+
+    unit_tests.h: provides tests for earlier implementations of the StringMap
+        class, as well as the `stripNonAlphaNum` and `toLowerCase` utility
+        functions. Many of the tests for earlier versions of StringMap are
+        commented out because they don't work with the newer implementation,
+        which was tested directly with diff testing. The commented tests are
+        left in for context of what we tested earlier.
+
+    testing files:
+        here are the query files that we used with our `make test` framework
+        which is described in detail in the testing section
+
+        champions-query.txt,
+        keep-query-insensitive.txt,
+        long-query.txt,
+        hard-query.txt: this files were provided from the
+            /comp/15/files/proj-gerp-sample-execution directory and do a good
+            job testing basic functionality
+
+        eof-no-quit.txt: tests the edge case of ending the command loop with a
+            eof instead of a `@q
+        
+        tricky-query.txt: tests an edge case that we were failing from earlier
+            gradescope autograder submissions
+
+## Compiling and Running:
+    This program can be complied by using make and then run using with the
+    executable ./gerp inputDirectory outputFile. 
+    
+
+## Architectural Overview:
+    The architechtural overview of our design for gerp included using the
+    DirNode and FSTree .cpp files to first create a file tree of the directory
+    we wanted to look through. This involved using a pointer of a DirNode to 
+    keep track of the root of tree. The FSTree then was used to recurse through
+    in the Gerp class. Next the StringMap class was used to create maps of 
+    specific Line structs in the gerp class which were tracked in a vector of
+    pointers inside the hashMap. stringProcessing was used in gerp as well in 
+    order to strip any non alphanumeric characters from the query and also 
+    within the files, which essentially removed the characters from the string 
+    that did not fit. The gerp class impleented the specific StringMaps 
+    we needed for case sensitive and non case sensitive words. This used all the
+    files mentioned above. gerp was the used in main.cpp by having a command
+    loop to handle all the command line queries and commands. 
+    
+
+## Data Structures:
+    The program used a variety of data structures to implement the functionality
+    for gerp. The main data structure used for this assignment was the hashmap.
+    In this assignment we had two maps, one called raw_map and one called
+    std_map. raw_map stored the strings as they were in a vector which contained
+    pointers to the lines the word was located on. std_map stored the strings as
+    standardized lowercase strings in a vector of pointers which pointed to the
+    line they were located on. We had std_map to enable querying for case
+    insensitive words. We decided to use a hash map because of the worst case
+    time of time of O(n) which would reduce the lookup time compared
+    to other data structures. All lines pointed to by the StringMaps were stored
+    on the heap and pointers to them were stored in a vector for easy memory
+    cleanup in the destructor.
+
+    The hashmap we built dynamically resized as we added elements. We expanded
+    the table each time the load factor exceeded 0.7. This allowed us to avoid
+    an unnecessary amount of collisions. Collisions were handled using the
+    chaining method: we used std::list to implement the chains in each bucket
+    using a doubly linked list made insertion much faster, because there was
+    no need to recurse through each element in the chain to insert a new
+    element. The downside of using this method is that it makes finding keys
+    from chains slower, as you have to recurse through each element in a chain.
+    In the future, we could possibly implement a BST to make recursing the chain
+    faster.
+    
+## Testing:
+    The program was tested originally using the unit_test framework for smaller
+    functions that could be tested independently of the main command loop. Then
+    additional testing was done with a small directory called Foo that was made
+    up of a couple of files and then a subdirectory made up of a couple small
+    words and edge cases, such as no alphanumeric characters and different
+    capitolizations of certain words. Additionally, we used the library called
+    <chrono> to implement a timer in out unit_test file to see how efficient our
+    program was at the very begenning. Next we tested with small and large 
+    Gutenberg after we had completed the main fucntionality of our program. This
+    led to some key errors which were found, such as the end of each data read,
+    we skipped a line, which led to major problems when testing against the
+    reference. When using the reference file to test we used two seperate output
+    files to sort and then diff test after running with small and large
+    Gutenberg. Then we tested using gerp_perf to try and improve the speed at
+    which our program functioned which showed some success when minimizing the 
+    amount of function calls and text copying we had to do while the fucntion
+    was running.
+
+    We breifly used valgrind with the callgrind tool along with the callgrind
+    annotate tool to view bottlenecks in our code. We found using this that the
+    exception handling in the get() function of our hashmap was taking up time
+    we instead transitioned to returning nullptrs if a key was not found, which
+    saved ~5s on largeGutenberg.
+
+    We also created a `make test` command to run our diff test more efficiently.
+    The majority of our edge case testing was done using diff testing, so we 
+    wanted to be able to test our changes efficiently. To do this, we created
+    a bash loop that would run all of our input queries for both the reference
+    implementation and our implementation, and then diff their sorted outputs.
+    To replicate this testing system, you will need the following directory
+    layout:
+
+        main_project_dir/
+            tests/
+                queries/
+                    -- put text files with your test queries here
+                ref/
+                    small-out/
+                        -- the outputs from the queries on the smallGutenberg
+                           database (from the reference implementation)
+                my/
+                    small-out/
+                        -- the outputs from the queries on the smallGutenberg
+                           database (from our implementation)
+
+    Then run `make test`, and the diffs from each test will be printed to the
+    terminal.
+
+## Hours Spent:
+    12 hours
